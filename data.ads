@@ -9,14 +9,16 @@ package data is
     type Vector is array (Integer range<>) of Integer;
     type Matrix is array (Integer range<>) of Vector(1..N);
 
-    procedure FillVectorWithOnes(vA : out Vector);
-    procedure FillMatrixWithOnes(MA : out Matrix);
-    procedure OutputVector (VA : in Vector);
+    procedure FillVectorWithOnes(V : access Vector);
+    procedure FillMatrixWithOnes(M : access Matrix);
+    procedure OutputVector (V : access Vector; size: Integer);
+    procedure OutputMatrix (M : access Matrix; size: Integer);
 
     function getVertexNumber(tid: in Integer) return Vertex;
     function isDirect(tidBin: in Vertex) return Boolean;
     function getPositionOfJ(tidBin: in Vertex) return Integer;
-    function PositionOfRightmost1(tidBin: in Vertex) return Integer;
+    function getDataSize(tidBin: in Vertex; directData: Boolean) return Integer;
+    function getPositionOfRightmost(tidBin: in Vertex; digit: in Integer) return Integer;
     function toggle(tidBin: in out Vertex; index: in Integer) return Vertex;
     function getWeight(j: in Integer) return Integer;
 

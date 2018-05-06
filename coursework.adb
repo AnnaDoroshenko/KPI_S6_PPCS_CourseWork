@@ -19,15 +19,17 @@ Ada.Calendar;
 procedure CourseWork is
 
     STORAGE : constant Integer := 50000000;
-    POWER : constant Integer := 3;         -- power of 2 
-    P : constant Integer := 2**POWER;      -- size of vector and matrix 
+    POWER : constant Integer := 3;         -- power of 2
+    P : constant Integer := 2**POWER;      -- size of vector and matrix
     N : constant Integer := 1 * P;             -- amount of the processors
     H : constant Integer := N/P;           -- size of the subvector and the submatrix
+    DIRECT_DATA: constant Boolean := true;
+    REVERSED_DATA: constant Boolean := false;
 
     package NewData is new Data(POWER, N, H);
     use NewData;
 
-    procedure Task_Launch is 
+    procedure Task_Launch is
 
     task type Ti is
         pragma Storage_Size(STORAGE);
@@ -48,38 +50,52 @@ procedure CourseWork is
     task body Ti is
         tid : Integer;
         tidBin : Vertex;
-        j: Integer;
-        i: Integer;
-        L: Integer := POWER;
-        -- MAi: Matrix;
-        -- MBi: Matrix;
-        -- Xi: Vector;
-        -- Ti: Vector;
-        -- Zi: Vector;
+        -- j: Integer;
+        -- i: Integer;
+        -- L: Integer := POWER;
+
+        MAi: access Matrix;
+        MBi: access Matrix;
+        Xi: access Vector;
+        Ti: access Vector;
+        Zi: access Vector;
+        ei: Integer;
+
         -- Ri: Vector;
-        ei, ai, a_previous: Integer;
+        -- ai, a_previous: Integer;
 
     begin
         accept Start(tid_in: Integer) do
             tid := tid_in;
-            i := tid;
+            -- i := tid;
+            -- get binary representation of vertex
+            tidBin := getVertexNumber(tid);
         end Start;
-
         Put_Line("T" & Integer'Image(tid) & " started");
 
-        -- -- input data
-        -- if (tid = 1) then
-        --     MatrixFillWithOnes(MB1);
-        --     e1 := 1;
-        -- elsif (tid = P) then
-        --     MatrixFillWithOnes(MAP);
-        --     VectorFillWithOnes(XP);
-        --     VectorFillWithOnes(TP);
-        --     VectorFiilWithOnes(ZP);
-        -- end if;
-        --
-        -- -- get binary representation of vertex
-        -- tidBin := getVertexNumber(tid);
+        -- Init variables
+        MAi := new Matrix(1..N);
+        MBi := new Matrix(1..getDataSize(tidBin, DIRECT_DATA));
+        Xi := new Vector(1..getDataSize(tidBin, REVERSED_DATA));
+        Ti := new Vector(1..N);
+        Zi := new Vector(1..getDataSize(tidBin, REVERSED_DATA));
+
+        -- input data
+        if (tid = 1) then
+            FillMatrixWithOnes(MBi);
+            ei := 1;
+        elsif (tid = P) then
+            FillMatrixWithOnes(MAi);
+            FillVectorWithOnes(Xi);
+            FillVectorWithOnes(Ti);
+            FillVectorWithOnes(Zi);
+        end if;
+
+        if (tid - 1 = 0) then
+            -- Put_Line(Integer'Image(getDataSize(tidBin, false)));
+            OutputMatrix(MBi, getDataSize(tidBin, DIRECT_DATA));
+        end if;
+
         --
         -- -- get position of righmost 1 or 0
         -- j := getPositionOfJ(tidBin);
@@ -173,7 +189,7 @@ procedure CourseWork is
         -- end if;
         --
         -- -- main calculations
-        -- AddVectors(Ri(1..H),MultScalarVector(ai, MultVectorMatrix(T(1..N), 
+        -- AddVectors(Ri(1..H),MultScalarVector(ai, MultVectorMatrix(T(1..N),
         -- MultMatrices(MBi(1..H), MAi(1..N)))),MultScalarVector(ei, Zi(1..H)));
         --
         -- -- get total result
@@ -202,7 +218,7 @@ procedure CourseWork is
             Put_Line("T" & Integer'Image(tid) & " finished");
         end Ti;
         -------------------------------------------------------
-        begin	
+        begin
             -- create tasks
             for i in 1..P loop
                 tasks(i).Start(i);

@@ -5,28 +5,39 @@ use text_IO, Ada.Integer_Text_IO;
 
 package body data is
 
-    procedure FillVectorWithOnes(vA : out Vector) is
+    procedure FillVectorWithOnes(V : access Vector) is
     begin
         for i in 1..N loop
-            vA(i) := 1;
+            V(i) := i;
         end loop;
     end FillVectorWithOnes;
 
-    procedure FillMatrixWithOnes(MA : out Matrix) is
+    procedure FillMatrixWithOnes(M : access Matrix) is
     begin
         for i in 1..N loop
             for j in 1..N loop
-                MA(i)(j) := 1;
+                M(i)(j) := i;
             end loop;
         end loop;
     end FillMatrixWithOnes;
 
-    procedure OutputVector (VA : in Vector) is
+    procedure OutputVector (V : access Vector; size: Integer) is
     begin
-        for i in 1..N loop
-            Put(VA(i));
+        for i in 1..size loop
+            Put(V(i));
         end loop;
+        Put_Line("");
     end OutputVector;
+
+    procedure OutputMatrix (M : access Matrix; size: Integer) is
+    begin
+        for i in 1..size loop
+            for j in 1..N loop
+                Put(M(i)(j));
+            end loop;
+            Put_Line("");
+        end loop;
+    end OutputMatrix;
 
     -------------------------------------------------------
     function getVertexNumber(tid: in Integer) return Vertex is
@@ -34,7 +45,7 @@ package body data is
         id: Integer;
     begin
         id := tid - 1;
-        for i in POWER..1 loop
+        for i in reverse 1..POWER loop
             BinNum(i) := id rem 2;
             id := id / 2;
         end loop;
@@ -55,42 +66,49 @@ package body data is
     begin
         if (isDirect(tidBin)) then
             waitingFor := 1;
-        else 
+        else
             waitingFor := 0;
         end if;
 
-        for i in POWER..1 loop
+        for i in reverse 1..POWER loop
             if (tidBin(i) = waitingFor) then
                 return i;
             end if;
         end loop;
 
-        return -1;
+        return 0;
     end getPositionOfJ;
 
-    function PositionOfRightmost1(tidBin: in Vertex) return Integer is
-        waitingFor: Integer;
-    begin	
-        if (isDirect(tidBin)) then
-            waitingFor := 1;
+    function getDataSize(tidBin: in Vertex; directData: Boolean) return Integer is
+        digit: Integer;
+    begin
+        if directData then
+            digit := 1;
         else
-            waitingFor := 0;
+            digit := 0;
         end if;
 
-        for i in POWER..1 loop
-            if (TidBin(i) = waitingFor) then
+        return getWeight(getPositionOfRightmost(tidBin, digit));
+    end;
+
+    function getPositionOfRightmost(tidBin: in Vertex; digit: in Integer) return Integer is
+        waitingFor: Integer;
+    begin
+        for i in reverse 1..POWER loop
+            if (tidBin(i) = digit) then
                 return i;
             end if;
         end loop;
 
-        return -1;
-    end PositionOfRightmost1;
+        return 0;
+    end getPositionOfRightmost;
 
+    -- uncheckd
     function toggle(tidBin: in out Vertex; index: in Integer) return Vertex is
     begin
         if (tidBin(index) = 1) then
             tidBin(index) := 0;
-        else 
+        else
             tidBin(index) := 1;
         end if;
         return tidBin;
@@ -98,7 +116,7 @@ package body data is
 
     function getWeight(j: in Integer) return Integer is
     begin
-        return 2**(j-1);
+        return 2**(POWER - j);
     end GetWeight;
 
     -- Operations with data --
@@ -110,7 +128,7 @@ package body data is
     --             minElem := A(i);
     --         end if;
     --     end loop;
-    --     return minElem;  
+    --     return minElem;
     -- end SearchMinElemOfVector;
     --
     -- function SearchTotalMin(a, b: in Integer) return Integer is
@@ -150,7 +168,7 @@ package body data is
     --
     -- function MultScalarVector(scalar: in Integer; VA: in Vector) return Vector is
     --     resVector: VectorN;
-    -- begin 
+    -- begin
     --     for i in 1..H loop
     --         resVector(i) := scalar * VA(i);
     --     end loop;
