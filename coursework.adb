@@ -22,7 +22,7 @@ procedure CourseWork is
     POWER : constant Integer := 3;         -- power of 2
     P : constant Integer := 2**POWER;      -- size of vector and matrix
     -- N : constant Integer := 2 * P;             -- amount of the processors
-    N : constant Integer := 512;             -- amount of the processors
+    N : constant Integer := 8;             -- amount of the processors
     H : constant Integer := N/P;           -- size of the subvector and the submatrix
     DIRECT_DATA: constant Boolean := true;
     REVERSED_DATA: constant Boolean := false;
@@ -100,7 +100,6 @@ procedure CourseWork is
             FillVectorWithOnes(Xi);
             FillVectorWithOnes(Ti);
             FillVectorWithOnes(Zi);
-            Xi(7) := 0;
         end if;
 
         -- get position of righmost 1 or 0
