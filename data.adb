@@ -52,6 +52,18 @@ package body data is
         return BinNum;
     end getVertexNumber;
 
+    function getTid(tidBin: in Vertex) return Integer is
+        tid: Integer := 1;
+        mult: Integer := 1;
+    begin
+        for i in reverse 1..POWER loop
+            tid := tid + tidBin(i) * mult;
+            mult := mult * 2;
+        end loop;
+
+        return tid;
+    end getTid;
+
     function isDirect(tidBin: in Vertex) return Boolean is
     begin
         if (tidBin(POWER) = 0) then
@@ -62,24 +74,18 @@ package body data is
     end isDirect;
 
     function getPositionOfJ(tidBin: in Vertex) return Integer is
-        waitingFor: Integer;
+        searchingFor: Integer;
     begin
         if (isDirect(tidBin)) then
-            waitingFor := 1;
+            searchingFor := 1;
         else
-            waitingFor := 0;
+            searchingFor := 0;
         end if;
 
-        for i in reverse 1..POWER loop
-            if (tidBin(i) = waitingFor) then
-                return i;
-            end if;
-        end loop;
-
-        return 0;
+        return getPositionOfRightmost(tidBin, searchingFor);
     end getPositionOfJ;
 
-    function getDataSize(tidBin: in Vertex; directData: Boolean) return Integer is
+    function getDataSizeInHs(tidBin: in Vertex; directData: Boolean) return Integer is
         digit: Integer;
     begin
         if directData then
@@ -89,10 +95,9 @@ package body data is
         end if;
 
         return getWeight(getPositionOfRightmost(tidBin, digit));
-    end;
+    end getDataSizeInHs;
 
     function getPositionOfRightmost(tidBin: in Vertex; digit: in Integer) return Integer is
-        waitingFor: Integer;
     begin
         for i in reverse 1..POWER loop
             if (tidBin(i) = digit) then
@@ -103,15 +108,17 @@ package body data is
         return 0;
     end getPositionOfRightmost;
 
-    -- uncheckd
-    function toggle(tidBin: in out Vertex; index: in Integer) return Vertex is
+    function toggle(tidBin: in Vertex; index: in Integer) return Vertex is
+        newTidBin: Vertex;
     begin
-        if (tidBin(index) = 1) then
-            tidBin(index) := 0;
+        newTidBin := tidBin;
+        if (newTidBin(index) = 1) then
+            newTidBin(index) := 0;
         else
-            tidBin(index) := 1;
+            newTidBin(index) := 1;
         end if;
-        return tidBin;
+
+        return newTidBin;
     end toggle;
 
     function getWeight(j: in Integer) return Integer is

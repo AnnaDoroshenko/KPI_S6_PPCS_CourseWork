@@ -15,11 +15,12 @@ package data is
     procedure OutputMatrix (M : access Matrix; size: Integer);
 
     function getVertexNumber(tid: in Integer) return Vertex;
+    function getTid(tidBin: in Vertex) return Integer;
     function isDirect(tidBin: in Vertex) return Boolean;
     function getPositionOfJ(tidBin: in Vertex) return Integer;
-    function getDataSize(tidBin: in Vertex; directData: Boolean) return Integer;
+    function getDataSizeInHs(tidBin: in Vertex; directData: Boolean) return Integer;
     function getPositionOfRightmost(tidBin: in Vertex; digit: in Integer) return Integer;
-    function toggle(tidBin: in out Vertex; index: in Integer) return Vertex;
+    function toggle(tidBin: in Vertex; index: in Integer) return Vertex;
     function getWeight(j: in Integer) return Integer;
 
     -- function SearchMinElemOfVector(A: in Vector) return Integer;

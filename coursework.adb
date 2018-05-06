@@ -36,8 +36,8 @@ procedure CourseWork is
 
         entry Start(tid_in: in Integer);
 
-        -- entry DataMB_e(MB: in Matrix; e: in Integer);
-        -- entry DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector);
+        entry DataMB_e(MB: in Matrix; e: in Integer);
+        entry DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector);
         -- entry Data_a(a: in Integer);
         --
         -- entry SearchMin(A: out Integer);
@@ -50,9 +50,13 @@ procedure CourseWork is
     task body Ti is
         tid : Integer;
         tidBin : Vertex;
-        -- j: Integer;
-        -- i: Integer;
-        -- L: Integer := POWER;
+        j: Integer;
+
+        M_buff: access Matrix;
+        V_buff1: access Vector;
+        V_buff2: access Vector;
+        buff1: Integer;
+        buff2: Integer;
 
         MAi: access Matrix;
         MBi: access Matrix;
@@ -61,24 +65,30 @@ procedure CourseWork is
         Zi: access Vector;
         ei: Integer;
 
+        sizeDirect: Integer;
+        sizeReversed: Integer;
+
         -- Ri: Vector;
         -- ai, a_previous: Integer;
 
     begin
         accept Start(tid_in: Integer) do
             tid := tid_in;
-            -- i := tid;
-            -- get binary representation of vertex
             tidBin := getVertexNumber(tid);
         end Start;
-        Put_Line("T" & Integer'Image(tid) & " started");
+        -- Put_Line("T" & Integer'Image(tid) & " started");
 
         -- Init variables
+        sizeDirect := getDataSizeInHs(tidBin, DIRECT_DATA) * H;
+        sizeReversed := getDataSizeInHs(tidBin, REVERSED_DATA) * H;
+        M_buff := new Matrix(1..N/2);
+        V_buff1 := new Vector(1..N/2);
+        V_buff2 := new Vector(1..N/2);
         MAi := new Matrix(1..N);
-        MBi := new Matrix(1..getDataSize(tidBin, DIRECT_DATA));
-        Xi := new Vector(1..getDataSize(tidBin, REVERSED_DATA));
+        MBi := new Matrix(1..sizeDirect);
+        Xi := new Vector(1..sizeReversed);
         Ti := new Vector(1..N);
-        Zi := new Vector(1..getDataSize(tidBin, REVERSED_DATA));
+        Zi := new Vector(1..sizeReversed);
 
         -- input data
         if (tid = 1) then
@@ -91,44 +101,61 @@ procedure CourseWork is
             FillVectorWithOnes(Zi);
         end if;
 
-        if (tid - 1 = 0) then
-            -- Put_Line(Integer'Image(getDataSize(tidBin, false)));
-            OutputMatrix(MBi, getDataSize(tidBin, DIRECT_DATA));
+        -- get position of righmost 1 or 0
+        j := getPositionOfJ(tidBin);
+
+        if (j /= 0) then
+            if (isDirect(tidBin)) then
+                -- receive MB, e
+                accept DataMB_e(MB: in Matrix; e: in Integer) do
+                    MBi.all(1..sizeDirect) := MB(1..sizeDirect);
+                    ei := e;
+                end DataMB_e;
+            else
+                --receive MA, X, T, Z
+                accept DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector) do
+                    MAi.all(1..N) := MA(1..N);
+                    Xi.all(1..sizeReversed) := X(1..sizeReversed);
+                    Ti.all(1..N) := T(1..N);
+                    Zi.all(1..sizeReversed) := Z(1..sizeReversed);
+                end DataMA_X_T_Z;
+            end if;
         end if;
 
-        --
-        -- -- get position of righmost 1 or 0
-        -- j := getPositionOfJ(tidBin);
-        --
-        -- if (j /= -1) then
-        --     if (isDirect(tidBin)) then
-        --         -- receive MB, e
-        --         accept DataMB_e(MB: in Matrix; e: in Integer) do
-        --             MBi(1..getWeigt(j)*H) := MB(1..getWeigt(j)*H);
-        --             ei := e;
-        --         end DataMB_e;
-        --     else
-        --         --receive MA, X, T, Z
-        --         accept DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector) do
-        --             MAi(1..N) := MA(1..N);
-        --             Xi(1..getWeight(j)*H) := X(1..getWeight(j)*H);
-        --             Ti(1..N) := T(1..N);
-        --             Zi(1..getWeight(j)*H) := Z(1..getWeight(j)*H);
-        --         end DataMA_X_T_Z;
-        --     end if;
-        -- else
-        --     j := 0;
-        --     for pos in j+1..L-1 loop
-        --         if (isDirect(tidBin)) then
-        --             -- send MB, e
-        --             T(toggle(TidBin, pos)).DataMB(MBi(1..getWeight(j)*H), ei);
-        --         else
-        --             -- send MA, X, T, Z
-        --             T(toggle(TidBin, pos)).DataMA_X_T_Z(MA(1..N), Xi(1..getWeight(j)*H), Ti(1..N), Zi(1..getWeight(j)*H));
-        --         end if;
-        --     end loop;
+        buff1 := 0; -- getWeight(pos)
+        buff2 := 0; -- for reversed. shift
+        for pos in j+1..POWER-1 loop -- HERE
+            buff1 := getWeight(pos);
+            if (isDirect(tidBin)) then
+                -- send MB, e
+                M_buff.all(1..buff1) := MBi.all(buff1+1..2*buff1);
+                tasks(getTid(toggle(tidBin, pos)))
+                    .DataMB_e(M_buff.all(1..buff1), ei);
+            else
+                -- send MA, X, T, Z
+                V_buff1.all(1..buff1) := Xi.all(buff2+1..buff2+buff1);
+                V_buff2.all(1..buff1) := Zi.all(buff2+1..buff2+buff1);
+                buff2 := buff2 + buff1; -- for next iteration
+                tasks(getTid(toggle(tidBin, pos)))
+                    .DataMA_X_T_Z(MAi.all(1..N), V_buff1.all(1..buff1),
+                        Ti.all(1..N), V_buff2.all(1..buff1));
+            end if;
+        end loop;
+
+        -- place self pieces into 1..H
+        if (not isDirect(tidBin)) then
+            Xi(1..H) := Xi(sizeReversed-H+1..sizeReversed);
+            Zi(1..H) := Zi(sizeReversed-H+1..sizeReversed);
+        end if;
+
+        -- if (tid = 4) then
+        -- if (tid rem 2 = 0) then
+            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(j+1));
+            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(Ti(1)));
+            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(MBi(1)(1)));
+            -- OutputVector(Zi, 4);
         -- end if;
-        --
+
         -- if (isDirect(tidBin)) then
         --     -- send MB, e
         --     T(toggle(TidBin, L)).DataMB(MBi(1..getWeight(l)*H), ei);
@@ -215,7 +242,7 @@ procedure CourseWork is
         --         end if;
         --     end if;
 
-            Put_Line("T" & Integer'Image(tid) & " finished");
+            -- Put_Line("T" & Integer'Image(tid) & " finished");
         end Ti;
         -------------------------------------------------------
         begin
