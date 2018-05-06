@@ -38,9 +38,9 @@ procedure CourseWork is
 
         entry DataMB_e(MB: in Matrix; e: in Integer);
         entry DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector);
-        -- entry Data_a(a: in Integer);
-        --
-        -- entry SearchMin(A: out Integer);
+        entry Data_a(a: in Integer);
+
+        entry SearchMin(a_prev: in Integer);
         -- entry Res_R(R: out Vector);
     end Ti;
 
@@ -69,7 +69,7 @@ procedure CourseWork is
         sizeReversed: Integer;
 
         -- Ri: Vector;
-        -- ai, a_previous: Integer;
+        ai: Integer;
 
     begin
         accept Start(tid_in: Integer) do
@@ -183,55 +183,47 @@ procedure CourseWork is
             Zi(1..H) := Zi(sizeReversed-H+1..sizeReversed);
         end if;
 
-        -- if (tid = 4) then
+        -- calculation of min
+        ai := SearchMinElemOFVector(Xi);
+
+        -- calculation of total min
+        j := getPositionOfRightmost(tidBin, 1);
+        -- Receive ai
+        for i in reverse j+1..POWER loop
+            accept SearchMin(a_prev: in Integer) do
+                ai := SearchTotalMin(a_prev, ai);
+            end SearchMin;
+        end loop;
+
+        -- Send ai
+        if (j > 0) then
+            tasks(getTid(toggle(tidBin, j))).SearchMin(ai);
+        end if;
+
+        -- Distribute total min a
+        j := getPositionOfRightmost(tidBin, 1);
+        -- Receive a
+        if (j > 0) then
+            accept Data_a(a: in Integer) do
+                ai := a;
+            end Data_a;
+        end if;
+
+        -- Send a
+        for i in j+1..POWER loop
+            tasks(getTid(toggle(tidBin, i))).Data_a(ai);
+        end loop;
+
+        -- if (tid = 1) then
         -- if (tid rem 2 = 0) then
-            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(j+1));
-            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(Zi(1)));
+            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(ai));
+            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(Xi(1)));
             -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(MBi(1)(1)));
             -- OutputVector(Zi, 4);
         -- end if;
 
 
 
-
-
-        -- -- calculation of min
-        -- ai := SearchMinElemOFVector(X1(1..H));
-        --
-        -- -- calculation of total min
-        -- j := positionOfRightmost1(tidBin);
-        -- if (j = -1) then
-        --     j := 0;
-        --     for i in L..j+1 loop
-        --         -- receive ai
-        --         T(toggle(TidBin, I)).SearchMin(A_previous);
-        --
-        --         Ai := SearchTotalMin(a_previous, ai);
-        --     end loop;
-        -- end if;
-        --
-        -- if (j > 0) then
-        --     -- send ai
-        --     accept SearchMin(A: out Integer) do
-        --         ai := A;
-        --     end SearchMin;
-        -- end if;
-        --
-        -- if (isDirect(tidBin)) then
-        --     if (j /= -1) then
-        --         -- receive a
-        --         accept Data_a(a: in Integer) do
-        --             Ai := A;
-        --         end Data_a;
-        --     else
-        --         j := 0;
-        --         for i in j+1..l loop
-        --             -- send a
-        --             T(toggle(TidBin, i)).SearchMin(Ai);
-        --         end loop;
-        --     end if;
-        -- end if;
-        --
         -- -- main calculations
         -- AddVectors(Ri(1..H),MultScalarVector(ai, MultVectorMatrix(T(1..N),
         -- MultMatrices(MBi(1..H), MAi(1..N)))),MultScalarVector(ei, Zi(1..H)));

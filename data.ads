@@ -23,8 +23,8 @@ package data is
     function toggle(tidBin: in Vertex; index: in Integer) return Vertex;
     function getWeight(j: in Integer) return Integer;
 
-    -- function SearchMinElemOfVector(A: in Vector) return Integer;
-    -- function SearchTotalMin(a, b: in Integer) return Integer;
+    function SearchMinElemOfVector(A: access Vector) return Integer;
+    function SearchTotalMin(a, b: in Integer) return Integer;
     -- function MultMatrices(MA, MB: in Matrix) return Matrix;
     -- function MultVectorMatrix(VA: in Vector; MA :in Matrix) return Vector;
     -- function MultScalarVector(scalar: in Integer; VA: in Vector) return Vector;

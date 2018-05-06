@@ -127,26 +127,26 @@ package body data is
     end GetWeight;
 
     -- Operations with data --
-    -- function SearchMinElemOfVector(A: in Vector) return Integer is
-    --     minElem: Integer := A(1);
-    -- begin
-    --     for i in 1..h loop
-    --         if A(i) < minElem then
-    --             minElem := A(i);
-    --         end if;
-    --     end loop;
-    --     return minElem;
-    -- end SearchMinElemOfVector;
-    --
-    -- function SearchTotalMin(a, b: in Integer) return Integer is
-    --     min: Integer := a;
-    -- begin
-    --     if b < a then
-    --         min := b;
-    --     end if;
-    --     return min;
-    -- end SearchTotalMin;
-    --
+    function SearchMinElemOfVector(A: access Vector) return Integer is
+        minElem: Integer := A(1);
+    begin
+        for i in 1..H loop
+            if A(i) < minElem then
+                minElem := A(i);
+            end if;
+        end loop;
+        return minElem;
+    end SearchMinElemOfVector;
+
+    function SearchTotalMin(a, b: in Integer) return Integer is
+        min: Integer := a;
+    begin
+        if b < a then
+            min := b;
+        end if;
+        return min;
+    end SearchTotalMin;
+
     -- function MultMatrices(MA, MB: in Matrix) return Matrix is
     --     mRes: MatrixN;
     -- begin
