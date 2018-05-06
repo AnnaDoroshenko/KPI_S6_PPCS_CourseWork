@@ -21,7 +21,8 @@ procedure CourseWork is
     STORAGE : constant Integer := 50000000;
     POWER : constant Integer := 3;         -- power of 2
     P : constant Integer := 2**POWER;      -- size of vector and matrix
-    N : constant Integer := 1 * P;             -- amount of the processors
+    -- N : constant Integer := 2 * P;             -- amount of the processors
+    N : constant Integer := 512;             -- amount of the processors
     H : constant Integer := N/P;           -- size of the subvector and the submatrix
     DIRECT_DATA: constant Boolean := true;
     REVERSED_DATA: constant Boolean := false;
@@ -41,7 +42,7 @@ procedure CourseWork is
         entry Data_a(a: in Integer);
 
         entry SearchMin(a_prev: in Integer);
-        -- entry Res_R(R: out Vector);
+        entry Res_R(R: out Vector);
     end Ti;
 
     type ti_array is array (1..P) of Ti;
@@ -52,31 +53,30 @@ procedure CourseWork is
         tidBin : Vertex;
         j: Integer;
 
-        M_buff: access Matrix;
-        V_buff1: access Vector;
-        V_buff2: access Vector;
-        buff1: Integer;
-        buff2: Integer;
-
         MAi: access Matrix;
         MBi: access Matrix;
         Xi: access Vector;
         Ti: access Vector;
         Zi: access Vector;
         ei: Integer;
+        Ri: access Vector;
+        ai: Integer;
+
+        M_buff: access Matrix;
+        V_buff1: access Vector;
+        V_buff2: access Vector;
+        buff1: Integer;
+        buff2: Integer;
 
         sizeDirect: Integer;
         sizeReversed: Integer;
-
-        -- Ri: Vector;
-        ai: Integer;
 
     begin
         accept Start(tid_in: Integer) do
             tid := tid_in;
             tidBin := getVertexNumber(tid);
         end Start;
-        -- Put_Line("T" & Integer'Image(tid) & " started");
+        Put_Line("T" & Integer'Image(tid) & " started");
 
         -- Init variables
         sizeDirect := getDataSizeInHs(tidBin, DIRECT_DATA) * H;
@@ -89,6 +89,7 @@ procedure CourseWork is
         Xi := new Vector(1..sizeReversed);
         Ti := new Vector(1..N);
         Zi := new Vector(1..sizeReversed);
+        Ri := new Vector(1..sizeDirect);
 
         -- input data
         if (tid = 1) then
@@ -99,6 +100,7 @@ procedure CourseWork is
             FillVectorWithOnes(Xi);
             FillVectorWithOnes(Ti);
             FillVectorWithOnes(Zi);
+            Xi(7) := 0;
         end if;
 
         -- get position of righmost 1 or 0
@@ -144,8 +146,6 @@ procedure CourseWork is
             end if;
         end loop;
 
-
-
         -- Vertical wave
         if (isDirect(tidBin)) then
             -- send MB, e
@@ -173,8 +173,6 @@ procedure CourseWork is
             tasks(getTid(toggle(tidBin, POWER)))
                 .DataMA_X_T_Z(MAi.all(1..N), V_buff1.all(1..H),
                     Ti.all(1..N), V_buff2.all(1..H));
-                -- .DataMA_X_T_Z(MA(1..N), Xi(1..getWeight(l)*H),
-                            -- Ti(1..N), Zi(1..getWeight(l)*H));
         end if;
 
         -- place self pieces into 1..H (only needed for reversed ones)
@@ -214,44 +212,43 @@ procedure CourseWork is
             tasks(getTid(toggle(tidBin, i))).Data_a(ai);
         end loop;
 
-        -- if (tid = 1) then
-        -- if (tid rem 2 = 0) then
-            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(ai));
-            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(Xi(1)));
-            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(MBi(1)(1)));
-            -- OutputVector(Zi, 4);
-        -- end if;
+        -- main calculations
+        for t in 1..H loop
+            buff1 := 0;
+            for i in 1..N loop
+                buff2 := 0;
+                for k in 1..N loop
+                    buff2 := buff2 + MBi(t)(k) * MAi(k)(i);
+                end loop;
 
+                buff1 := buff1 + Ti(i) * buff2;
+            end loop;
+            Ri(t) := ai * buff1 + ei * Zi(t);
+        end loop;
 
+        -- get total result
+        j := getPositionOfRightmost(tidBin, 1);
+        -- Receive Ri
+        buff1 := H; -- both shift and receive size
+        for i in reverse j+1..POWER loop
+            tasks(getTid(toggle(tidBin, i))).Res_R(V_buff1.all);
 
-        -- -- main calculations
-        -- AddVectors(Ri(1..H),MultScalarVector(ai, MultVectorMatrix(T(1..N),
-        -- MultMatrices(MBi(1..H), MAi(1..N)))),MultScalarVector(ei, Zi(1..H)));
-        --
-        -- -- get total result
-        -- j := positionOfRightmost1(tidBin);
-        -- if (j = -1) then
-        --     j := 0;
-        --     for i in L..j+1 loop
-        --         -- receive Ri
-        --         T(toggle(TidBin, i)).Res_R(Ri);
-        --     end loop;
-        --
-        --     if (j > 0) then
-        --         -- send Ri
-        --         accept Res_R(R: out Vector) do
-        --             R(1..?H) := Ri(1..?H);
-        --         end Res_R;
-        --     end if;
-        --
-        --     -- output data
-        --     if (tid = 1) then
-        --         if (N < 17)
-        --             OutputVector(R);
-        --         end if;
-        --     end if;
+            Ri.all(buff1+1..2*buff1) := V_buff1.all(1..buff1);
+            buff1 := buff1 * 2;
+        end loop;
 
-            -- Put_Line("T" & Integer'Image(tid) & " finished");
+        -- Send Ri
+        if (j > 0) then
+            accept Res_R(R: out Vector) do
+                R(1..sizeDirect) := Ri.all(1..sizeDirect);
+            end Res_R;
+        end if;
+
+        if (tid = 1 and N <= 8) then
+            OutputVector(Ri, N);
+        end if;
+
+            Put_Line("T" & Integer'Image(tid) & " finished");
         end Ti;
         -------------------------------------------------------
         begin

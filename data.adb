@@ -8,7 +8,7 @@ package body data is
     procedure FillVectorWithOnes(V : access Vector) is
     begin
         for i in 1..N loop
-            V(i) := i;
+            V(i) := 1;
         end loop;
     end FillVectorWithOnes;
 
@@ -16,7 +16,7 @@ package body data is
     begin
         for i in 1..N loop
             for j in 1..N loop
-                M(i)(j) := i;
+                M(i)(j) := 1;
             end loop;
         end loop;
     end FillMatrixWithOnes;
@@ -146,47 +146,5 @@ package body data is
         end if;
         return min;
     end SearchTotalMin;
-
-    -- function MultMatrices(MA, MB: in Matrix) return Matrix is
-    --     mRes: MatrixN;
-    -- begin
-    --     for i in 1..H loop
-    --         for j in 1..N loop
-    --             mRes(i)(j) := 0;
-    --             for k in 1..N loop
-    --                 mRes(i)(j) := mRes(i)(j) + MA (i)(k) * MB (k)(j);
-    --             end loop;
-    --         end loop;
-    --     end loop;
-    --     return mRes;
-    -- end MultMatrices;
-    --
-    -- function MultVectorMatrix(VA: in Vector; MA :in Matrix) return Vector is
-    --     ResVector : Vector;
-    -- begin
-    --     for i in H loop
-    --         ResVector(i) := 0;
-    --         for j in 1..N loop
-    --             ResVector(i) := ResVector(i) + VA(j) * MA(j)(i);
-    --         end loop;
-    --     end loop;
-    --     return ResVector;
-    -- end MultVectorMatrix;
-    --
-    -- function MultScalarVector(scalar: in Integer; VA: in Vector) return Vector is
-    --     resVector: VectorN;
-    -- begin
-    --     for i in 1..H loop
-    --         resVector(i) := scalar * VA(i);
-    --     end loop;
-    --     return resVector;
-    -- end MultScalarVector;
-    --
-    -- procedure AddVectors(VR: out Vector; VA, VB: in Vector) is
-    -- begin
-    --     for i in 1..H loop
-    --         VR := VA(i) + VB(i);
-    --     end loop;
-    -- end AddVectors;
 
 end data;
