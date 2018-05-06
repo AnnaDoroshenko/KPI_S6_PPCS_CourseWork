@@ -104,6 +104,7 @@ procedure CourseWork is
         -- get position of righmost 1 or 0
         j := getPositionOfJ(tidBin);
 
+        -- Flat wave. Receive
         if (j /= 0) then
             if (isDirect(tidBin)) then
                 -- receive MB, e
@@ -122,10 +123,11 @@ procedure CourseWork is
             end if;
         end if;
 
-        buff1 := 0; -- getWeight(pos)
+        -- Flat wave. Send
+        buff1 := 0; -- getWeight(pos) * H
         buff2 := 0; -- for reversed. shift
         for pos in j+1..POWER-1 loop -- HERE
-            buff1 := getWeight(pos);
+            buff1 := getWeight(pos) * H;
             if (isDirect(tidBin)) then
                 -- send MB, e
                 M_buff.all(1..buff1) := MBi.all(buff1+1..2*buff1);
@@ -142,7 +144,40 @@ procedure CourseWork is
             end if;
         end loop;
 
-        -- place self pieces into 1..H
+
+
+        -- Vertical wave
+        if (isDirect(tidBin)) then
+            -- send MB, e
+            M_buff.all(1..H) := MBi.all(H+1..2*H);
+            tasks(getTid(toggle(tidBin, POWER)))
+                .DataMB_e(M_buff.all(1..H), ei);
+
+            -- receive MA, X, T, Z
+            accept DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector) do
+                MAi.all(1..N) := MA(1..N);
+                Xi.all(1..H) := X(1..H);
+                Ti.all(1..N) := T(1..N);
+                Zi.all(1..H) := Z(1..H);
+            end DataMA_X_T_Z;
+        else
+            -- receive MB, e
+            accept DataMB_e(MB: in Matrix; e: in Integer) do
+                MBi.all(1..H) := MB(1..H);
+                ei := e;
+            end DataMB_e;
+
+            -- send MA, X, T, Z
+            V_buff1.all(1..H) := Xi.all(sizeReversed-2*H+1..sizeReversed-H);
+            V_buff2.all(1..H) := Zi.all(sizeReversed-2*H+1..sizeReversed-H);
+            tasks(getTid(toggle(tidBin, POWER)))
+                .DataMA_X_T_Z(MAi.all(1..N), V_buff1.all(1..H),
+                    Ti.all(1..N), V_buff2.all(1..H));
+                -- .DataMA_X_T_Z(MA(1..N), Xi(1..getWeight(l)*H),
+                            -- Ti(1..N), Zi(1..getWeight(l)*H));
+        end if;
+
+        -- place self pieces into 1..H (only needed for reversed ones)
         if (not isDirect(tidBin)) then
             Xi(1..H) := Xi(sizeReversed-H+1..sizeReversed);
             Zi(1..H) := Zi(sizeReversed-H+1..sizeReversed);
@@ -151,33 +186,15 @@ procedure CourseWork is
         -- if (tid = 4) then
         -- if (tid rem 2 = 0) then
             -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(j+1));
-            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(Ti(1)));
+            -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(Zi(1)));
             -- Put_Line(Integer'Image(tid) & " got " & Integer'Image(MBi(1)(1)));
             -- OutputVector(Zi, 4);
         -- end if;
 
-        -- if (isDirect(tidBin)) then
-        --     -- send MB, e
-        --     T(toggle(TidBin, L)).DataMB(MBi(1..getWeight(l)*H), ei);
-        --
-        --     -- receive MA, X, T, Z
-        --     accept DataMA_X_T_Z(MA: in Matrix; X: in Vector; T: in Vector; Z: in Vector) do
-        --         MAi(1..N) := MA(1..N);
-        --         Xi(1..getWeight(l)*H) := X(1..getWeight(l)*H);
-        --         Ti(1..N) := T(1..N);
-        --         Zi(1..getWeight(l)*H) := Z(1..getWeight(l)*H);
-        --     end DataMA_X_T_Z;
-        -- else
-        --     -- receive MB, e
-        --     accept DataMB_e(MB: in Matrix; e: in Integer) do
-        --         MBi(1..getWeigt(L)*H) := MB(1..getWeigt(L)*H);
-        --         ei := e;
-        --     end DataMB_e;
-        --
-        --     -- send MA, X, T, Z
-        --     T(toggle(TidBin, L)).DataMA_X_T_Z(MA(1..N), Xi(1..getWeight(l)*H), Ti(1..N), Zi(1..getWeight(l)*H));
-        -- end if;
-        --
+
+
+
+
         -- -- calculation of min
         -- ai := SearchMinElemOFVector(X1(1..H));
         --
